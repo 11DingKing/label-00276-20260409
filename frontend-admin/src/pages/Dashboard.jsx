@@ -155,15 +155,16 @@ function Dashboard() {
       legend: {
         data: ['产量', '良品率'],
         top: 0,
-        right: 20,
+        right: 60,
         textStyle: { color: '#8c8c8c', fontSize: 12 },
+        itemGap: 20,
       },
       grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        top: 40,
-        containLabel: true,
+        left: 60,
+        right: 80,
+        bottom: 40,
+        top: 50,
+        containLabel: false,
       },
       xAxis: {
         type: 'category',
@@ -265,24 +266,25 @@ function Dashboard() {
       },
       legend: {
         type: 'scroll',
-        orient: 'vertical',
-        right: '5%',
-        top: 'center',
+        orient: 'horizontal',
+        bottom: 10,
+        left: 'center',
         itemWidth: 10,
         itemHeight: 10,
-        textStyle: { color: '#8c8c8c', fontSize: 12 },
+        itemGap: 15,
+        textStyle: { color: '#8c8c8c', fontSize: 11 },
         formatter: (name) => {
           const item = pieData.find((d) => d.name === name)
           const percent = total > 0 ? ((item?.value || 0) / total * 100).toFixed(1) : 0
-          return `${name}  ${item?.value || 0} (${percent}%)`
+          return `${name} ${item?.value || 0}(${percent}%)`
         },
       },
       series: [
         {
           type: 'pie',
-          radius: ['40%', '70%'],
-          center: ['35%', '50%'],
-          avoidLabelOverlap: false,
+          radius: ['35%', '60%'],
+          center: ['50%', '42%'],
+          avoidLabelOverlap: true,
           itemStyle: {
             borderRadius: 6,
             borderColor: '#fff',
@@ -292,7 +294,7 @@ function Dashboard() {
           emphasis: {
             label: {
               show: true,
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: 'bold',
               color: '#262626',
             },
