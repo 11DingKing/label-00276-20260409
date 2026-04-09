@@ -1,67 +1,83 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Row, Col, Card, Statistic, Typography, List, Tag, Spin, Progress } from 'antd'
+import { Row, Col, Card, Typography, List, Tag, Spin, Empty } from 'antd'
 import {
-  FileTextOutlined,
-  UserOutlined,
-  ShoppingOutlined,
-  DatabaseOutlined,
-  TeamOutlined,
-  BarChartOutlined,
-  InboxOutlined,
-  AppstoreOutlined,
   RiseOutlined,
+  FallOutlined,
   ClockCircleOutlined,
+  WarningOutlined,
   CheckCircleOutlined,
+  ToolOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons'
-import { statisticsApi, productionApi } from '../utils/api'
+import * as echarts from 'echarts'
+import { dashboardApi } from '../utils/api'
 
 const { Title, Text } = Typography
 
-// 统计卡片组件 - 现代简约风格
-const StatCard = ({ title, value, icon, color, suffix }) => (
-  <Card
-    hoverable
-    style={{
-      borderRadius: 12,
-      border: 'none',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-    }}
-    bodyStyle={{ padding: 20 }}
-  >
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <div>
-        <Text style={{ fontSize: 13, color: '#8c8c8c' }}>{title}</Text>
-        <div style={{ marginTop: 4 }}>
-          <span style={{ fontSize: 28, fontWeight: 600, color: '#262626' }}>{value}</span>
-          <span style={{ fontSize: 13, color: '#8c8c8c', marginLeft: 4 }}>{suffix}</span>
+const StatCard = ({ title, value, icon, color, change, suffix = '' }) => {
+  const isPositive = change >= 0
+  const changeColor = isPositive ? '#52c41a' : '#ff4d4f'
+  const ChangeIcon = isPositive ? RiseOutlined : FallOutlined
+
+  return (
+    <Card
+      hoverable
+      style={{
+        borderRadius: 12,
+        border: 'none',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+      }}
+      bodyStyle={{ padding: 20 }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <Text style={{ fontSize: 13, color: '#8c8c8c' }}>{title}</Text>
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline' }}>
+            <span style={{ fontSize: 28, fontWeight: 600, color: '#262626' }}>{value}</span>
+            {suffix && <span style={{ fontSize: 14, color: '#8c8c8c', marginLeft: 4 }}>{suffix}</span>}
+          </div>
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
+            <ChangeIcon style={{ fontSize: 12, color: changeColor, marginRight: 2 }} />
+            <Text style={{ fontSize: 12, color: changeColor, fontWeight: 500 }}>
+              {Math.abs(change)}%
+            </Text>
+            <Text style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 4 }}>较昨日</Text>
+          </div>
+        </div>
+        <div
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 12,
+            background: `linear-gradient(135deg, ${color}15, ${color}25)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 24,
+            color,
+          }}
+        >
+          {icon}
         </div>
       </div>
-      <div
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 10,
-          background: `linear-gradient(135deg, ${color}15, ${color}25)`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 20,
-          color,
-        }}
-      >
-        {icon}
-      </div>
-    </div>
-  </Card>
-)
+    </Card>
+  )
+}
 
 function Dashboard() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({})
-  const [recentOrders, setRecentOrders] = useState([])
+  const [trendData, setTrendData] = useState({ dates: [], production: [], quality_rate: [] })
+  const [orderStatusData, setOrderStatusData] = useState([])
+  const [recentExceptions, setRecentExceptions] = useState([])
   const [user, setUser] = useState({})
+
+  const trendChartRef = useRef(null)
+  const pieChartRef = useRef(null)
+  const trendChartInstance = useRef(null)
+  const pieChartInstance = useRef(null)
 
   useEffect(() => {
     const userInfo = localStorage.getItem('user')
@@ -69,20 +85,34 @@ function Dashboard() {
       setUser(JSON.parse(userInfo))
     }
     loadData()
+
+    return () => {
+      trendChartInstance.current?.dispose()
+      pieChartInstance.current?.dispose()
+    }
   }, [])
 
   const loadData = async () => {
     setLoading(true)
     try {
-      const [statsRes, ordersRes] = await Promise.all([
-        statisticsApi.getOverview(),
-        productionApi.getOrders({ limit: 5 }),
+      const [statsRes, trendRes, statusRes, exceptionsRes] = await Promise.all([
+        dashboardApi.getStats(),
+        dashboardApi.getTrend(),
+        dashboardApi.getOrderStatus(),
+        dashboardApi.getRecentExceptions(),
       ])
+
       if (statsRes.success) {
         setStats(statsRes.data || {})
       }
-      if (ordersRes.success) {
-        setRecentOrders((ordersRes.data || []).slice(0, 5))
+      if (trendRes.success) {
+        setTrendData(trendRes.data || { dates: [], production: [], quality_rate: [] })
+      }
+      if (statusRes.success) {
+        setOrderStatusData(statusRes.data || [])
+      }
+      if (exceptionsRes.success) {
+        setRecentExceptions(exceptionsRes.data || [])
       }
     } catch (err) {
       console.error('加载数据失败:', err)
@@ -91,11 +121,222 @@ function Dashboard() {
     }
   }
 
-  const statusConfig = {
-    PENDING: { text: '待生产', color: '#faad14', bg: '#fffbe6' },
-    IN_PROGRESS: { text: '生产中', color: '#1890ff', bg: '#e6f7ff' },
-    COMPLETED: { text: '已完成', color: '#52c41a', bg: '#f6ffed' },
-    CANCELLED: { text: '已取消', color: '#8c8c8c', bg: '#fafafa' },
+  useEffect(() => {
+    if (!loading && trendChartRef.current && trendData.dates.length > 0) {
+      initTrendChart()
+    }
+  }, [loading, trendData])
+
+  useEffect(() => {
+    if (!loading && pieChartRef.current && orderStatusData.length > 0) {
+      initPieChart()
+    }
+  }, [loading, orderStatusData])
+
+  const initTrendChart = () => {
+    if (trendChartInstance.current) {
+      trendChartInstance.current.dispose()
+    }
+
+    trendChartInstance.current = echarts.init(trendChartRef.current)
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#f0f0f0',
+        borderWidth: 1,
+        textStyle: { color: '#262626' },
+        axisPointer: {
+          type: 'cross',
+          lineStyle: { color: '#1890ff', type: 'dashed' },
+        },
+      },
+      legend: {
+        data: ['产量', '良品率'],
+        top: 0,
+        right: 20,
+        textStyle: { color: '#8c8c8c', fontSize: 12 },
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        top: 40,
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        data: trendData.dates,
+        boundaryGap: false,
+        axisLine: { lineStyle: { color: '#f0f0f0' } },
+        axisLabel: { color: '#8c8c8c', fontSize: 12 },
+        axisTick: { show: false },
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: '产量',
+          position: 'left',
+          axisLine: { show: false },
+          axisLabel: { color: '#8c8c8c', fontSize: 12 },
+          axisTick: { show: false },
+          splitLine: { lineStyle: { color: '#f5f5f5', type: 'dashed' } },
+        },
+        {
+          type: 'value',
+          name: '良品率',
+          position: 'right',
+          min: 0,
+          max: 100,
+          axisLine: { show: false },
+          axisLabel: { color: '#8c8c8c', fontSize: 12, formatter: '{value}%' },
+          axisTick: { show: false },
+          splitLine: { show: false },
+        },
+      ],
+      series: [
+        {
+          name: '产量',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { color: '#1890ff', width: 2 },
+          itemStyle: { color: '#1890ff' },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
+              { offset: 1, color: 'rgba(24, 144, 255, 0.05)' },
+            ]),
+          },
+          data: trendData.production,
+        },
+        {
+          name: '良品率',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { color: '#52c41a', width: 2 },
+          itemStyle: { color: '#52c41a' },
+          yAxisIndex: 1,
+          data: trendData.quality_rate,
+        },
+      ],
+    }
+
+    trendChartInstance.current.setOption(option)
+
+    const handleResize = () => {
+      trendChartInstance.current?.resize()
+    }
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }
+
+  const initPieChart = () => {
+    if (pieChartInstance.current) {
+      pieChartInstance.current.dispose()
+    }
+
+    pieChartInstance.current = echarts.init(pieChartRef.current)
+
+    const pieData = orderStatusData.map((item) => ({
+      name: item.name,
+      value: item.value,
+      itemStyle: { color: item.color },
+      status: item.status,
+    }))
+
+    const total = pieData.reduce((sum, item) => sum + item.value, 0)
+
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#f0f0f0',
+        borderWidth: 1,
+        textStyle: { color: '#262626' },
+        formatter: '{b}: {c} ({d}%)',
+      },
+      legend: {
+        type: 'scroll',
+        orient: 'vertical',
+        right: '5%',
+        top: 'center',
+        itemWidth: 10,
+        itemHeight: 10,
+        textStyle: { color: '#8c8c8c', fontSize: 12 },
+        formatter: (name) => {
+          const item = pieData.find((d) => d.name === name)
+          const percent = total > 0 ? ((item?.value || 0) / total * 100).toFixed(1) : 0
+          return `${name}  ${item?.value || 0} (${percent}%)`
+        },
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['35%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 6,
+            borderColor: '#fff',
+            borderWidth: 2,
+          },
+          label: { show: false },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: '#262626',
+            },
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.2)',
+            },
+          },
+          labelLine: { show: false },
+          data: pieData,
+        },
+      ],
+    }
+
+    pieChartInstance.current.setOption(option)
+
+    pieChartInstance.current.on('click', (params) => {
+      const statusMap = {
+        '待排产': 'PENDING',
+        '生产中': 'IN_PROGRESS',
+        '已完成': 'COMPLETED',
+        '异常': 'CANCELLED',
+      }
+      const status = statusMap[params.name]
+      if (status) {
+        navigate(`/production?status=${status}`)
+      }
+    })
+
+    const handleResize = () => {
+      pieChartInstance.current?.resize()
+    }
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }
+
+  const exceptionStatusConfig = {
+    '待处理': { color: '#ff4d4f', bg: '#fff1f0' },
+    '处理中': { color: '#faad14', bg: '#fffbe6' },
+    '已处理': { color: '#52c41a', bg: '#f6ffed' },
   }
 
   if (loading) {
@@ -106,14 +347,8 @@ function Dashboard() {
     )
   }
 
-  // 计算完成率
-  const completionRate = stats.total_orders > 0 
-    ? Math.round((stats.completed_orders || 0) / stats.total_orders * 100) 
-    : 0
-
   return (
     <div style={{ padding: '0 0 24px' }}>
-      {/* 欢迎横幅 - 使用蓝色渐变 */}
       <Card
         style={{
           marginBottom: 24,
@@ -122,326 +357,195 @@ function Dashboard() {
           background: 'linear-gradient(135deg, #1890ff 0%, #36cfc9 100%)',
           boxShadow: '0 4px 20px rgba(24, 144, 255, 0.3)',
         }}
-        bodyStyle={{ padding: '32px 40px' }}
+        bodyStyle={{ padding: '28px 32px' }}
       >
         <Row justify="space-between" align="middle">
           <Col>
-            <Title level={3} style={{ color: 'white', marginBottom: 8, fontWeight: 600 }}>
+            <Title level={3} style={{ color: 'white', marginBottom: 6, fontWeight: 600 }}>
               欢迎回来，{user.real_name || user.username || '管理员'}！
             </Title>
-            <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 15 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14 }}>
               今日是美好的一天，祝您工作顺利！
             </Text>
-          </Col>
-          <Col>
-            <Row gutter={16}>
-              {[
-                { title: '新建订单', icon: <FileTextOutlined />, path: '/production' },
-                { title: '用户管理', icon: <UserOutlined />, path: '/users' },
-                { title: '部门管理', icon: <TeamOutlined />, path: '/department/1' },
-                { title: '数据统计', icon: <BarChartOutlined />, path: '/statistics' },
-              ].map((action) => (
-                <Col key={action.title}>
-                  <div
-                    onClick={() => navigate(action.path)}
-                    style={{
-                      textAlign: 'center',
-                      padding: '16px 20px',
-                      background: 'rgba(255,255,255,0.15)',
-                      borderRadius: 12,
-                      cursor: 'pointer',
-                      color: 'white',
-                      transition: 'all 0.3s',
-                      backdropFilter: 'blur(10px)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.25)'
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.15)'
-                      e.currentTarget.style.transform = 'translateY(0)'
-                    }}
-                  >
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>{action.icon}</div>
-                    <div style={{ fontSize: 13 }}>{action.title}</div>
-                  </div>
-                </Col>
-              ))}
-            </Row>
           </Col>
         </Row>
       </Card>
 
-      {/* 统计卡片 - 使用蓝绿色系 */}
       <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <StatCard
-            title="总订单数"
-            value={stats.total_orders || 0}
+            title="今日产量"
+            value={stats.today_production || 0}
             icon={<FileTextOutlined />}
             color="#1890ff"
+            change={stats.today_production_change || 0}
             suffix="单"
           />
         </Col>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <StatCard
-            title="今日新增"
-            value={stats.today_orders || 0}
-            icon={<RiseOutlined />}
-            color="#52c41a"
-            suffix="单"
-          />
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <StatCard
-            title="用户总数"
-            value={stats.total_users || 0}
-            icon={<UserOutlined />}
-            color="#13c2c2"
-            suffix="人"
-          />
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <StatCard
-            title="产品数量"
-            value={stats.total_products || 0}
-            icon={<ShoppingOutlined />}
+            title="在制品数量"
+            value={stats.in_progress || 0}
+            icon={<ClockCircleOutlined />}
             color="#faad14"
-            suffix="个"
+            change={stats.in_progress_change || 0}
+            suffix="单"
+          />
+        </Col>
+        <Col xs={12} sm={12} lg={6}>
+          <StatCard
+            title="良品率"
+            value={stats.quality_rate || 0}
+            icon={<CheckCircleOutlined />}
+            color="#52c41a"
+            change={stats.quality_rate_change || 0}
+            suffix="%"
+          />
+        </Col>
+        <Col xs={12} sm={12} lg={6}>
+          <StatCard
+            title="设备利用率"
+            value={stats.equipment_rate || 0}
+            icon={<ToolOutlined />}
+            color="#13c2c2"
+            change={stats.equipment_rate_change || 0}
+            suffix="%"
           />
         </Col>
       </Row>
 
-      {/* 下方内容区 */}
-      <Row gutter={20}>
-        {/* 左侧 - 最近订单 */}
+      <Row gutter={[20, 20]}>
         <Col xs={24} lg={16}>
           <Card
             title={
               <span style={{ fontWeight: 600, fontSize: 16 }}>
-                <ClockCircleOutlined style={{ marginRight: 8, color: '#1890ff' }} />
-                最近订单
+                <RiseOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                生产趋势
+              </span>
+            }
+            style={{
+              borderRadius: 16,
+              border: 'none',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+              marginBottom: 20,
+            }}
+            bodyStyle={{ padding: '16px 20px' }}
+          >
+            <div ref={trendChartRef} style={{ height: 320 }} />
+          </Card>
+
+          <Card
+            title={
+              <span style={{ fontWeight: 600, fontSize: 16 }}>
+                <WarningOutlined style={{ marginRight: 8, color: '#ff4d4f' }} />
+                最近异常
+              </span>
+            }
+            style={{
+              borderRadius: 16,
+              border: 'none',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+            }}
+            bodyStyle={{ padding: '4px 20px' }}
+          >
+            {recentExceptions.length > 0 ? (
+              <List
+                dataSource={recentExceptions.slice(0, 5)}
+                locale={{ emptyText: '暂无异常记录' }}
+                renderItem={(item) => {
+                  const statusConfig = exceptionStatusConfig[item.handle_status] || exceptionStatusConfig['待处理']
+                  return (
+                    <List.Item style={{ padding: '12px 0', borderBottom: '1px solid #f5f5f5' }}>
+                      <List.Item.Meta
+                        avatar={
+                          <div
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 8,
+                              background: 'linear-gradient(135deg, #fff1f0, #ffa39e)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <WarningOutlined style={{ fontSize: 18, color: '#ff4d4f' }} />
+                          </div>
+                        }
+                        title={
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontWeight: 500, color: '#262626', fontSize: 14 }}>
+                              {item.order_no}
+                            </span>
+                            <Tag
+                              style={{
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '2px 10px',
+                                background: statusConfig.bg,
+                                color: statusConfig.color,
+                                fontWeight: 500,
+                                fontSize: 12,
+                              }}
+                            >
+                              {item.handle_status}
+                            </Tag>
+                          </div>
+                        }
+                        description={
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                              <Text style={{ color: '#8c8c8c', fontSize: 12, marginRight: 12 }}>
+                                {item.time}
+                              </Text>
+                              <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>
+                                {item.exception_type}
+                              </Tag>
+                            </div>
+                            <Text style={{ color: '#595959', fontSize: 12 }}>
+                              {item.product_name} - {item.process_name}
+                              {item.remarks && ` · ${item.remarks}`}
+                            </Text>
+                          </div>
+                        }
+                      />
+                    </List.Item>
+                  )
+                }}
+              />
+            ) : (
+              <Empty description="暂无异常记录" style={{ padding: '40px 0' }} />
+            )}
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={8}>
+          <Card
+            title={
+              <span style={{ fontWeight: 600, fontSize: 16 }}>
+                <FileTextOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                工单状态
               </span>
             }
             extra={
-              <a 
+              <a
                 onClick={() => navigate('/production')}
                 style={{ color: '#1890ff', fontSize: 14 }}
               >
                 查看全部 →
               </a>
             }
-            style={{ 
-              borderRadius: 16, 
-              border: 'none',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-              marginBottom: 20,
-            }}
-            bodyStyle={{ padding: '4px 20px' }}
-          >
-            <List
-              itemLayout="horizontal"
-              dataSource={recentOrders}
-              locale={{ emptyText: '暂无订单数据' }}
-              renderItem={(item) => {
-                const status = statusConfig[item.status] || statusConfig.PENDING
-                return (
-                  <List.Item style={{ padding: '12px 0', borderBottom: '1px solid #f5f5f5' }}>
-                    <List.Item.Meta
-                      avatar={
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 8,
-                            background: 'linear-gradient(135deg, #e6f7ff, #bae7ff)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <FileTextOutlined style={{ fontSize: 18, color: '#1890ff' }} />
-                        </div>
-                      }
-                      title={
-                        <span style={{ fontWeight: 500, color: '#262626', fontSize: 14 }}>
-                          {item.order_no}
-                        </span>
-                      }
-                      description={
-                        <Text style={{ color: '#8c8c8c', fontSize: 12 }}>
-                          {item.product_name || '未知产品'} · 数量 {item.quantity}
-                        </Text>
-                      }
-                    />
-                    <Tag
-                      style={{
-                        border: 'none',
-                        borderRadius: 6,
-                        padding: '2px 10px',
-                        background: status.bg,
-                        color: status.color,
-                        fontWeight: 500,
-                        fontSize: 12,
-                      }}
-                    >
-                      {status.text}
-                    </Tag>
-                  </List.Item>
-                )
-              }}
-            />
-          </Card>
-
-          {/* 生产进度 */}
-          <Card
-            title={
-              <span style={{ fontWeight: 600, fontSize: 16 }}>
-                <CheckCircleOutlined style={{ marginRight: 8, color: '#52c41a' }} />
-                订单完成率
-              </span>
-            }
-            style={{ 
-              borderRadius: 16, 
+            style={{
+              borderRadius: 16,
               border: 'none',
               boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
             }}
             bodyStyle={{ padding: '16px 20px' }}
           >
-            <Row align="middle" gutter={24}>
-              <Col>
-                <Progress
-                  type="circle"
-                  percent={completionRate}
-                  size={100}
-                  strokeColor={{
-                    '0%': '#1890ff',
-                    '100%': '#52c41a',
-                  }}
-                  strokeWidth={8}
-                />
-              </Col>
-              <Col flex={1}>
-                <Row gutter={[16, 12]}>
-                  <Col span={12}>
-                    <div style={{ padding: '10px 14px', background: '#f6ffed', borderRadius: 8 }}>
-                      <Text style={{ color: '#8c8c8c', fontSize: 12 }}>已完成</Text>
-                      <div style={{ fontSize: 22, fontWeight: 600, color: '#52c41a' }}>
-                        {stats.completed_orders || 0}
-                      </div>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div style={{ padding: '10px 14px', background: '#e6f7ff', borderRadius: 8 }}>
-                      <Text style={{ color: '#8c8c8c', fontSize: 12 }}>进行中</Text>
-                      <div style={{ fontSize: 22, fontWeight: 600, color: '#1890ff' }}>
-                        {(stats.total_orders || 0) - (stats.completed_orders || 0)}
-                      </div>
-                    </div>
-                  </Col>
-                </Row>
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-
-        {/* 右侧 - 快捷入口 + 系统状态 合并 */}
-        <Col xs={24} lg={8}>
-          <Card
-            title={
-              <span style={{ fontWeight: 600, fontSize: 16 }}>
-                <AppstoreOutlined style={{ marginRight: 8, color: '#1890ff' }} />
-                快捷入口
-              </span>
-            }
-            style={{ 
-              borderRadius: 16, 
-              border: 'none',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-              marginBottom: 20,
-            }}
-            bodyStyle={{ padding: '16px 20px' }}
-          >
-            <Row gutter={[12, 12]}>
-              {[
-                { title: '生产管理', icon: <AppstoreOutlined />, color: '#1890ff', path: '/production' },
-                { title: '原材料', icon: <DatabaseOutlined />, color: '#52c41a', path: '/materials' },
-                { title: '成品管理', icon: <ShoppingOutlined />, color: '#13c2c2', path: '/products' },
-                { title: '库存管理', icon: <InboxOutlined />, color: '#faad14', path: '/inventory' },
-              ].map((item) => (
-                <Col span={12} key={item.title}>
-                  <div
-                    onClick={() => navigate(item.path)}
-                    style={{
-                      padding: '14px 12px',
-                      borderRadius: 10,
-                      border: '1px solid #f0f0f0',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = item.color
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#f0f0f0'
-                      e.currentTarget.style.transform = 'translateY(0)'
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
-                        background: `linear-gradient(135deg, ${item.color}10, ${item.color}20)`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 8px',
-                        fontSize: 20,
-                        color: item.color,
-                      }}
-                    >
-                      {item.icon}
-                    </div>
-                    <Text style={{ fontSize: 13, color: '#262626' }}>{item.title}</Text>
-                  </div>
-                </Col>
-              ))}
-            </Row>
-          </Card>
-
-          {/* 系统状态 */}
-          <Card
-            title={<span style={{ fontWeight: 600, fontSize: 16 }}>系统状态</span>}
-            style={{ 
-              borderRadius: 16, 
-              border: 'none',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-            }}
-            bodyStyle={{ padding: '12px 20px' }}
-          >
-            {[
-              { label: '数据库连接', value: <Tag color="success" style={{ margin: 0 }}>正常</Tag> },
-              { label: 'API服务', value: <Tag color="success" style={{ margin: 0 }}>运行中</Tag> },
-              { label: '系统版本', value: <Text style={{ color: '#262626' }}>v2.0.0</Text> },
-            ].map((item, idx) => (
-              <div
-                key={item.label}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '10px 0',
-                  borderBottom: idx < 2 ? '1px solid #f5f5f5' : 'none',
-                }}
-              >
-                <Text style={{ color: '#8c8c8c', fontSize: 13 }}>{item.label}</Text>
-                {item.value}
-              </div>
-            ))}
+            <div ref={pieChartRef} style={{ height: 280 }} />
+            <Text style={{ fontSize: 11, color: '#bfbfbf', display: 'block', textAlign: 'center', marginTop: 8 }}>
+              点击扇区可筛选对应状态的工单
+            </Text>
           </Card>
         </Col>
       </Row>
