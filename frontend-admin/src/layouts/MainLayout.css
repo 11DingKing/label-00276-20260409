@@ -1,0 +1,154 @@
+/* 侧边栏 */
+.sidebar {
+  width: 220px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: #001529;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-logo {
+  height: 64px;
+  line-height: 64px;
+  text-align: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* 强制隐藏侧边栏滚动条 */
+.sidebar-nav::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+.sidebar *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* 菜单项 */
+.nav-item {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 20px;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.nav-item:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+}
+
+.nav-item.active {
+  color: #fff;
+  background: #1890ff;
+}
+
+.nav-icon {
+  width: 20px;
+  margin-right: 10px;
+  font-size: 16px;
+}
+
+.nav-text {
+  flex: 1;
+}
+
+.nav-arrow {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.nav-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+/* 子菜单 */
+.nav-sub {
+  max-height: 0;
+  overflow: hidden;
+  background: rgba(0,0,0,0.2);
+}
+
+.nav-sub.show {
+  max-height: 1000px;
+}
+
+.nav-sub-item {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 20px 0 50px;
+  color: rgba(255,255,255,0.65);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.nav-sub-item:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+}
+
+.nav-sub-item.active {
+  color: #1890ff;
+  background: rgba(24,144,255,0.2);
+}
+
+.dept-icon {
+  margin-right: 8px;
+}
+
+/* 主布局 */
+.main-layout {
+  margin-left: 220px;
+}
+
+.main-header {
+  padding: 0 24px !important;
+  background: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  box-shadow: 0 1px 4px rgba(0,21,41,.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.main-content {
+  margin: 24px;
+  min-height: calc(100vh - 64px - 48px);
+}
+
+/* 下拉菜单居中对齐 */
+.ant-dropdown-menu-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ant-dropdown-menu-item .anticon {
+  margin-right: 8px;
+}

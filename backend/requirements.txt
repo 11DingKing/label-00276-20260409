@@ -1,0 +1,28 @@
+# 家具生产管理系统 - 混合架构版本依赖
+# Furniture Production Management System - Hybrid Architecture Dependencies
+
+# ==================== GUI Framework ====================
+# PyQt6 核心
+PyQt6>=6.4.0
+PyQt6-WebEngine>=6.4.0
+
+# ==================== API Backend ====================
+# Flask Web框架
+Flask>=3.0.0
+Flask-CORS>=4.0.0
+
+# JWT 认证
+PyJWT>=2.8.0
+
+# ==================== Database ====================
+PyMySQL>=1.1.0
+cryptography>=41.0.0
+
+# ==================== Password Hashing ====================
+bcrypt>=4.1.0
+
+# ==================== Date/Time ====================
+python-dateutil>=2.8.0
+
+# ==================== WSGI Server ====================
+waitress>=3.0.0

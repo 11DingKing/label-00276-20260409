@@ -1,0 +1,358 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f7fa;
+  color: #262626;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* 隐藏页面滚动条 */
+body::-webkit-scrollbar {
+  display: none;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* 登录页面 */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%);
+}
+
+.login-card {
+  width: 420px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  padding: 48px 40px;
+}
+
+.login-title {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.login-title h1 {
+  font-size: 28px;
+  color: #1890ff;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.login-title p {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+/* 登录按钮禁用所有hover效果 */
+.login-btn,
+.login-btn:hover,
+.login-btn:focus,
+.login-btn:active,
+.login-btn:focus-visible {
+  background: linear-gradient(135deg, #1890ff, #36cfc9) !important;
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.35) !important;
+  transition: none !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  outline: none !important;
+}
+
+.login-btn::after,
+.login-btn::before {
+  display: none !important;
+}
+
+.login-btn .ant-wave {
+  display: none !important;
+}
+
+.login-btn.ant-btn-primary:not(:disabled):not(.ant-btn-disabled):hover {
+  background: linear-gradient(135deg, #1890ff, #36cfc9) !important;
+}
+
+/* Ant Design 覆盖样式 */
+.ant-layout {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+.ant-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.ant-table {
+  background: white;
+  border-radius: 12px;
+}
+
+/* 表格表头居中 */
+.ant-table-thead > tr > th {
+  background: #fafafa !important;
+  font-weight: 600;
+  color: #262626;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: center !important;
+}
+
+.ant-table-thead > tr > th .ant-table-column-sorters {
+  justify-content: center;
+}
+
+.ant-table-thead > tr > th .ant-table-column-title {
+  flex: none;
+}
+
+/* 表格内容居中 */
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid #f5f5f5;
+  text-align: center !important;
+}
+
+.ant-table-tbody > tr > td .ant-space {
+  justify-content: center;
+  width: 100%;
+}
+
+.ant-table-tbody > tr > td .ant-tag {
+  margin: 0;
+}
+
+/* 操作按钮样式优化 */
+.ant-table-tbody .ant-btn-link {
+  padding: 0 4px !important;
+  height: auto;
+}
+
+.ant-table-tbody .ant-space {
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #fafafa !important;
+}
+
+/* 表格单元格内容居中 */
+.ant-table-cell {
+  text-align: center !important;
+}
+
+.ant-table-cell .ant-btn {
+  margin: 0 2px;
+}
+
+.ant-btn-primary {
+  background: #1890ff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.35);
+}
+
+.ant-btn-primary:hover,
+.ant-btn-primary:focus {
+  background: #40a9ff !important;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.45);
+}
+
+/* 防止按钮闪烁 */
+.ant-btn {
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+}
+
+.ant-btn:hover,
+.ant-btn:focus {
+  transform: none !important;
+}
+
+.ant-btn::after {
+  display: none !important;
+}
+
+.ant-btn-primary::before {
+  display: none !important;
+}
+
+/* Modal 按钮样式稳定 */
+.ant-modal-footer .ant-btn {
+  transition: background-color 0.2s ease, border-color 0.2s ease !important;
+}
+
+.ant-input:focus,
+.ant-input-focused {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* 搜索框样式稳定 */
+.ant-input-affix-wrapper {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+  line-height: 1.5715;
+}
+
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* 防止 Input 内部元素导致跳动 */
+.ant-input-affix-wrapper .ant-input {
+  background: transparent !important;
+}
+
+.ant-input-affix-wrapper .ant-input-prefix {
+  margin-right: 8px;
+}
+
+/* Space 组件内元素对齐 */
+.ant-space-item {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+  border-color: #1890ff;
+}
+
+.ant-select-focused .ant-select-selector {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* 标签页样式 */
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.ant-tabs-ink-bar {
+  background: #1890ff;
+}
+
+/* 进度条 */
+.ant-progress-text {
+  color: #262626 !important;
+  font-weight: 600;
+}
+
+/* 页面过渡动画 */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-exit {
+  opacity: 1;
+}
+
+.page-exit-active {
+  opacity: 0;
+  transition: opacity 200ms;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .login-card {
+    width: 90%;
+    max-width: 400px;
+    padding: 32px 24px;
+  }
+}
+
+
+/* 防止表格加载时高度跳动 */
+.ant-table-wrapper {
+  min-height: 400px;
+}
+
+.ant-spin-nested-loading {
+  min-height: 300px;
+}
+
+.ant-table-placeholder {
+  min-height: 200px;
+}
+
+/* 防止卡片内容变化导致跳动 */
+.ant-card-body {
+  min-height: 100px;
+}
+
+
+/* 防止 Modal 打开时页面跳动 */
+body.ant-scrolling-effect {
+  width: 100% !important;
+  padding-right: 0 !important;
+}
+
+/* 禁用 Ant Design 的滚动锁定 */
+.ant-modal-wrap {
+  overflow: auto !important;
+}
+
+.ant-modal-mask + .ant-modal-wrap {
+  padding-right: 0 !important;
+}
+
+/* 强制固定宽度防止跳动 */
+html, body, #root {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+
+/* 页面头部卡片对齐修复 */
+.page-header-card .ant-card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px !important;
+}
+
+.ant-space {
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.ant-space-item {
+  display: inline-flex !important;
+  align-items: center !important;
+}
